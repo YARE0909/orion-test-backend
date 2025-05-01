@@ -1,44 +1,37 @@
-import express, { Request, Response } from 'express';
-import dotenv from 'dotenv';
-import { AccessToken } from 'livekit-server-sdk';
+import { spawn } from 'child_process';
+import express from 'express';
 import cors from 'cors';
+import { AccessToken } from 'livekit-server-sdk';
+import dotenv from 'dotenv';
 
 dotenv.config();
 
+// 1) Launch the livekit-server binary in dev mode
+const sfu = spawn(`${process.env.LIVEKIT_BIN_PATH}`, ['--dev','--bind','0.0.0.0'], { stdio: 'inherit' });
+sfu.on('exit', (code) => {
+  console.log(`livekit-server exited (${code})`);
+  process.exit(code ?? 0);
+});
+
+// 2) Express token endpoint
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.use(cors(), express.json());
 
 const { LIVEKIT_API_KEY, LIVEKIT_API_SECRET } = process.env;
 if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-  console.error('⚠️ Missing LIVEKIT_API_KEY or LIVEKIT_API_SECRET in .env');
+  console.error('⚠️ Missing LIVEKIT_API_KEY or LIVEKIT_API_SECRET');
   process.exit(1);
 }
 
-// 1) Make callback async
-app.get('/api/token', async (req: Request, res: Response) => {
+app.get('/api/token', async (req, res) => {
   const identity = String(req.query.identity || 'guest');
   const room     = String(req.query.room     || 'default');
-
-  // 2) Create token and grant
-  const at = new AccessToken(
-    LIVEKIT_API_KEY,
-    LIVEKIT_API_SECRET,
-    { identity }
-  );
+  const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, { identity });
   at.addGrant({ roomJoin: true, room });
-
-  try {
-    // 3) Await the JWT string!
-    const jwt = await at.toJwt();
-    res.json({ token: jwt });   // now a real string
-  } catch (err) {
-    console.error('Token generation failed', err);
-    res.status(500).json({ error: 'token generation failed' });
-  }
+  const jwt = await at.toJwt();
+  res.json({ token: jwt });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+app.listen(3000, () => {
+  console.log('Backend + SFU launcher listening on port 3000');
 });
