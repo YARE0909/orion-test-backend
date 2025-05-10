@@ -21,13 +21,14 @@ app.get('/api/token', async (req, res) => {
 
   // Create a LiveKit AccessToken
   const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, { identity });
-  at.addGrant({ roomJoin: true, room });
+  at.addGrant({ roomJoin: true, room, canPublish: true,
+    canSubscribe: true});
   const jwt = await at.toJwt();
 
   res.json({ token: jwt, wsUrl: LIVEKIT_URL });
 });
 
-app.listen(3000, () => {
+app.listen(9500, () => {
   console.log('✅ Token server listening on http://localhost:3000');
   console.log(`   ↳ Using LiveKit Cloud at ${LIVEKIT_URL}`);
 });
