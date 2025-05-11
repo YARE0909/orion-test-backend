@@ -50,7 +50,7 @@ app.post('/api/start-recording', async (req, res) => {
         }),
       },
     });
-    const info = await egressClient.startRoomCompositeEgress(room, { file: fileOutput }, { layout: 'speaker' });
+    const info = await egressClient.startRoomCompositeEgress(room, { file: fileOutput }, { layout: 'grid' });
 
     res.status(200).json({
       message: 'Recording started',
